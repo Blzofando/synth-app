@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      // O usuário só pode ler seu próprio documento
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Permitir criação APENAS se o status for 'pending' garantindo que o usuário não se aprove sozinho
+      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.status == 'pending';
+      
+      // Permitir atualização SOMENTE se o usuário não tentar alterar o campo 'status'
+      allow update: if request.auth != null && request.auth.uid == userId && request.resource.data.status == resource.data.status;
+    }
+    
+    // Bloquear todo o resto por padrão (Protocolo de Segurança de Ferro)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
